@@ -7,6 +7,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
 */
 #include "history/history_item_components.h"
 
+#include "kotato/kotato_settings.h"
 #include "kotato/kotato_lang.h"
 #include "base/qt/qt_key_modifiers.h"
 #include "lang/lang_keys.h"
@@ -334,7 +335,11 @@ void HistoryMessageReply::paint(
 	p.fillRect(rbar, bar);
 
 	if (w > st::msgReplyBarSkip) {
-		if (replyToMsg) {
+		auto blocked = replyToMsg
+			&& replyToMsg->from()->isUser()
+			&& replyToMsg->from()->asUser()->isBlocked();
+		const auto blockUsersInGroups = ::Kotato::JsonSettings::GetBool("block_users_in_groups");
+		if (replyToMsg && (!blocked || !blockUsersInGroups)) {
 			auto hasPreview = replyToMsg->media() ? replyToMsg->media()->hasReplyPreview() : false;
 			if (hasPreview && w < st::msgReplyBarSkip + st::msgReplyBarSize.height()) {
 				hasPreview = false;
@@ -380,7 +385,7 @@ void HistoryMessageReply::paint(
 			p.setPen(inBubble
 				? stm->msgDateFg
 				: st->msgDateImgFg());
-			p.drawTextLeft(x + st::msgReplyBarSkip, y + st::msgReplyPadding.top() + (st::msgReplyBarSize.height() - st::msgDateFont->height) / 2, w + 2 * x, st::msgDateFont->elided(replyToMsgId ? tr::lng_profile_loading(tr::now) : tr::lng_deleted_message(tr::now), w - st::msgReplyBarSkip));
+			p.drawTextLeft(x + st::msgReplyBarSkip, y + st::msgReplyPadding.top() + (st::msgReplyBarSize.height() - st::msgDateFont->height) / 2, w + 2 * x, st::msgDateFont->elided((replyToMsgId && (!blocked || !blockUsersInGroups)) ? tr::lng_profile_loading(tr::now) : tr::lng_deleted_message(tr::now), w - st::msgReplyBarSkip));
 		}
 	}
 }
